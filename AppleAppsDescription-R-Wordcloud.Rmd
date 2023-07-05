@@ -1,0 +1,153 @@
+---
+title: "AppleAppsDescription-Wordcloud"
+author: "Esther W. Imenje"
+date: "2023-07-05"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+![](C:/Users/user/Documents/ios3.png)
+
+## Introduction
+
+This R notebook shows the word cloud visualization of the Apple Apps Description. This word cloud was created using the Mobile Store Apps Dataset found in Kaggle under [Ramanathan](https://www.kaggle.com/datasets/ramamet4/app-store-apple-data-set-10k-apps).
+
+To find the most used words in the app descriptions, I referenced these two articles:
+
+1.    [dkmathstats](https://dk81.github.io/dkmathstats_site/rtext-freq-words.html)  Finding the most frequent words in text with R
+2.    [Celine Van den Rul](https://towardsdatascience.com/create-a-word-cloud-with-r-bde3e7422e8a)  How to generate word clouds in R
+
+## Preparation
+
+**Data**  
+
+Data Collection Date From API -- July 2017
+
+Dimension of Dataset -- 7,197 rows and 4 columns
+
+Dataset -- appstoreStore_description.csv
+
+Columns:
+
+*   id : App ID
+*   track_name: Application name
+*   size_bytes: Memory size (in Bytes)
+*   app_desc: Application description
+
+
+**Uploading the dataset into Rstudio**
+```{r}
+AppleAppsDesc <- read.csv("appleStore_description.csv")
+head(AppleAppsDesc)
+```
+
+**To confirm the number of rows and columns in the dataset**
+```{r}
+library(dplyr)
+n_distinct(AppleAppsDesc)
+nrow(AppleAppsDesc)
+dim(AppleAppsDesc)
+str(AppleAppsDesc)
+```
+
+**To change the name of the columns id to app_id and track_name to app_name**
+```{r}
+library(dplyr)
+AppleAppsDesc %>% rename(app_id = id,
+                         app_name = track_name)
+                  
+# To add a column showing the size of the apps in megabytes (MB)
+
+AppleAppsDesc$sizeMB <- AppleAppsDesc$size_bytes%/%1000000
+```
+
+**To extract the text from the dataframe.**
+```{r}
+AppsText <- AppleAppsDesc$app_desc
+head(AppsText, n=2)
+```
+
+**To create a corpus from the text using the VectorSource function**
+```{r}
+library(tm)
+AppsTextCorpus <- Corpus(VectorSource(AppsText))
+```
+
+**To remove numbers from the text**
+```{r}
+AppsTextClean <- tm_map(AppsTextCorpus, removeNumbers)
+```
+
+**To remove punctuation from the text**
+```{r}
+AppsTextClean <- tm_map(AppsTextClean, removePunctuation)
+```
+
+**To transform all the text to lowercase**
+```{r}
+AppsTextClean <- tm_map(AppsTextClean, content_transformer(tolower))
+```
+
+**To remove extra whitespace from the text**
+```{r}
+AppsTextClean <- tm_map(AppsTextClean, stripWhitespace)
+```
+
+**Sample of English stop words**
+head(stopwords(kind = "en"), n=10)
+
+**To remove English stop words from the text**
+```{r}
+AppsTextClean <- tm_map(AppsTextClean, removeWords, stopwords(kind = "en"))
+```
+
+**To create a matrix that has the words in one column and the frequency in another**
+```{r}
+# term document matrix describes the frequencies of terms occurring in a text
+AppsText_dtm <- TermDocumentMatrix(AppsTextClean)
+
+# creating a matrix object with the as.matrix function
+AppsText_matrix <- as.matrix(AppsText_dtm, nrow=2)
+
+# the sort function orders the values
+# the rowSums function calculates the sum of the values in each row of a matrix or dataframe
+AppsText_words <- sort(rowSums(AppsText_matrix), decreasing = TRUE)
+
+# the data.frame function creates a dataframe of different data types
+AppsText_df <- data.frame(word = names(AppsText_words), freq = AppsText_words)
+
+  
+head(AppsText_df)
+```
+
+**To generate a wordcloud, using the wordcloud package and the color brewer package**
+```{r}
+library(wordcloud)
+library(RColorBrewer)
+
+set.seed(1234)
+
+mypalette <- brewer.pal(8,"Dark2")
+
+wordcloud(words = AppsText_df$word, AppsText_df$freq, min.freq = 10, max.words = 100, random.order = FALSE, rot.per = 0.35, colors = mypalette)
+```
+
+wordcloud(words = AppsText_df$word, AppsText_df$freq, min.freq = 10, max.words = 100, random.order = FALSE, rot.per = 0.35, colors = mypalette)
+
+**Using wordcloud2 package to create a word cloud**
+```{r}
+library(wordcloud2)
+```
+
+**To create a word cloud using the wordcloud2 package**
+```{r}
+wordcloud2(AppsText_df, size = 0.4, shape = "circle")
+```
+
+wordcloud2(AppsText_df, size = 0.4, shape = "circle")
+
+**End**
